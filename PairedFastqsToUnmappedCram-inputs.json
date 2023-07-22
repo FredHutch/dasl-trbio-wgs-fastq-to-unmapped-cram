@@ -1,0 +1,47 @@
+{
+  "PairedFastqsToUnmappedCram.batchInfo": [
+    {
+      "datasetID": "JR-WGS",
+      "sampleName": "RO50282",
+      "libraryName": "RO50282",
+      "sequencingCenter": "FH-SR-Genomics",
+      "filepaths": [ {
+        "flowcellName": "230626_A00613_0562_AHNJWFDSX5",
+        "fastqR1Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230626_A00613_0562_AHNJWFDSX5/RO50282_S20_R1_001.fastq.gz"
+        ],
+        "fastqR2Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230626_A00613_0562_AHNJWFDSX5/RO50282_S20_R2_001.fastq.gz"
+        ]
+      },{
+        "flowcellName": "230626_A00613_0563_BHNJWHDSX5",
+        "fastqR1Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230626_A00613_0563_BHNJWHDSX5/RO50282_S20_R1_001.fastq.gz"
+        ],
+        "fastqR2Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230626_A00613_0563_BHNJWHDSX5/RO50282_S20_R2_001.fastq.gz"
+        ]
+      },{
+        "flowcellName": "230629_A00613_0565_AHNJY5DSX5",
+        "fastqR1Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230629_A00613_0565_AHNJY5DSX5/RO50282_S20_R1_001.fastq.gz"
+        ],
+        "fastqR2Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230629_A00613_0565_AHNJY5DSX5/RO50282_S20_R2_001.fastq.gz"
+        ]
+      },{
+        "flowcellName": "230705_A00613_0568_BHW3JTDSX5",
+        "fastqR1Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230705_A00613_0568_BHW3JTDSX5/RO50282_S20_R1_001.fastq.gz"
+        ],
+        "fastqR2Locations": [
+          "/fh/scratch/delete90/paguirigan_a/prec_med_upload/Radich/2023_06_samples/230705_A00613_0568_BHW3JTDSX5/RO50282_S20_R2_001.fastq.gz"
+        ]
+      }
+      ]
+      
+
+
+    }
+  ]
+}
