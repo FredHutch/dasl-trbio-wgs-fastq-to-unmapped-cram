@@ -41,7 +41,7 @@ scatter (sample in batchInfo) { # for every sample in your batch,
         modules = GATKModule
     }
     } # End flowcell scatter
-      call mergeBams { # then for each of the flowcells that library was run on, merge all the unmapped bams into one unmapped bam for the library
+      call mergeBamstoCram { # then for each of the flowcells that library was run on, merge all the unmapped bams into one unmapped bam for the library
         input:
           bamsToMerge = FastqtoUnmappedBam.unmappedbam,
           base_file_name = base_file_name + ".merged",
@@ -49,25 +49,25 @@ scatter (sample in batchInfo) { # for every sample in your batch,
           threads = 6
       }
 
-    call CramABam { # then cram that merged bam and index it
-      input:
-        bamtocram = mergeBams.bam,
-        base_file_name = base_file_name + "merged.unmapped",
-        modules = samtoolsModule,
-        threads = 6
-    }
+    # call CramABam { # then cram that merged bam and index it
+    #   input:
+    #     bamtocram = mergeBams.bam,
+    #     base_file_name = base_file_name + "merged.unmapped",
+    #     modules = samtoolsModule,
+    #     threads = 6
+    # }
 
   call ValidateCram { # then validate to make sure it checks out
     input: 
-      unmappedCram=mergeBams.bam,
+      unmappedCram=mergeBamstoCram.cram,
       base_file_name = base_file_name,
       modules = GATKModule
   }
 } # End sample scatter
   # Outputs that will be retained when execution is complete
   output {
-    Array[File] unmappedCrams = CramABam.cram
-    Array[File] unmappedCramIndexes = CramABam.cramIndex
+    Array[File] unmappedCrams = mergeBamstoCram.cram
+    Array[File] unmappedCramIndexes = mergeBamstoCram.crai
     Array[File] validation = ValidateCram.validation
   }
 # End workflow
@@ -127,8 +127,8 @@ task FastqtoUnmappedBam {
       -SEQUENCING_CENTER=~{sequencingCenter}
   }
   runtime {
-    cpu: 8
-    memory: "16G"
+    cpu: 4
+    memory: "8G"
     modules: modules
   }
   output {
@@ -161,7 +161,7 @@ task ValidateCram {
   }
 }
 
-task mergeBams {
+task mergeBamstoCram {
   input {
   Array[File] bamsToMerge
   String base_file_name
@@ -172,7 +172,9 @@ task mergeBams {
   command {
     set -eo pipefail
 
-    samtools merge -@~{threads-1} ~{sep=" " bamsToMerge} -o ~{base_file_name}.bam
+    samtools merge -@ ~{threads-1} \
+      --write-index --output-fmt CRAM  \
+      ~{base_file_name}.merged.cram ~{sep=" " bamsToMerge} 
 
     }
   runtime {
@@ -180,6 +182,7 @@ task mergeBams {
     cpu: threads
   }
   output {
-    File bam = "~{base_file_name}.merged.bam"
+    File cram = "~{base_file_name}.merged.cram"
+    File crai = "~{base_file_name}.merged.cram.crai"
   }
 }
