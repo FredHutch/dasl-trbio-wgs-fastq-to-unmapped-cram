@@ -20,8 +20,9 @@ workflow PairedFastqsToUnmappedCram {
   input {
   Array[inputData] batchInfo
   }
-  String GATKModule = "GATK/4.1.4.0-GCCcore-8.3.0-Java-11"
-  String samtoolsModule = "SAMtools/1.11-GCC-10.2.0"
+  #String GATKModule = "GATK/4.1.4.0-GCCcore-8.3.0-Java-11"
+  String GATKDocker = "ghcr.io/getwilds/gatk:4.3.0.0"
+  String samtoolsDocker = "ghcr.io/getwilds/samtools:1.11"
 
 scatter (sample in batchInfo) { # for every sample in your batch,
 
@@ -38,37 +39,38 @@ scatter (sample in batchInfo) { # for every sample in your batch,
         sequencingCenter = sample.sequencingCenter,
         libraryName = sample.libraryName,
         flowcellName = flowcell.flowcellName,
-        modules = GATKModule
+        GATKDocker = GATKDocker
     }
-    } # End flowcell scatter
-      call mergeBamstoCram { # then for each of the flowcells that library was run on, merge all the unmapped bams into one unmapped bam for the library
-        input:
-          bamsToMerge = FastqtoUnmappedBam.unmappedbam,
-          base_file_name = base_file_name + ".merged",
-          modules = samtoolsModule,
-          threads = 6
-      }
-
-    # call CramABam { # then cram that merged bam and index it
-    #   input:
-    #     bamtocram = mergeBams.bam,
-    #     base_file_name = base_file_name + "merged.unmapped",
-    #     modules = samtoolsModule,
-    #     threads = 6
-    # }
+    call CramABam { # then cram that bam and index it
+      input:
+        bamtocram = FastqtoUnmappedBam.unmappedbam,
+        base_file_name = base_file_name  + "_" + flowcell.flowcellName + ".unmapped",
+        samtoolsDocker = samtoolsDocker,
+        threads = 6
+    }
 
   call ValidateCram { # then validate to make sure it checks out
     input: 
-      unmappedCram=mergeBamstoCram.cram,
-      base_file_name = base_file_name,
-      modules = GATKModule
+      unmappedCram=CramABam.cram,
+      base_file_name = base_file_name + "_" + flowcell.flowcellName,
+      GATKDocker = GATKDocker
   }
+    } # End flowcell scatter
+      # call mergeBamstoCram { # then for each of the flowcells that library was run on, merge all the unmapped bams into one unmapped bam for the library
+      #   input:
+      #     bamsToMerge = FastqtoUnmappedBam.unmappedbam,
+      #     base_file_name = base_file_name + ".merged",
+      #     docker = samtoolsDocker,
+      #     threads = 6
+      # }
+
+
 } # End sample scatter
   # Outputs that will be retained when execution is complete
   output {
-    Array[File] unmappedCrams = mergeBamstoCram.cram
-    Array[File] unmappedCramIndexes = mergeBamstoCram.crai
-    Array[File] validation = ValidateCram.validation
+    Array[Array[File]] unmappedCrams = CramABam.cram
+    Array[Array[File]] unmappedCramIndexes = CramABam.cramIndex
+    Array[Array[File]] validation = ValidateCram.validation
   }
 # End workflow
 }
@@ -79,7 +81,7 @@ task CramABam {
   input {
   File bamtocram
   String base_file_name
-  String modules
+  String samtoolsDocker
   Int threads
   }
 
@@ -90,7 +92,7 @@ task CramABam {
     samtools index -@~{threads-1} ~{base_file_name}.cram
     }
   runtime {
-    modules: modules
+    docker: samtoolsDocker
     cpu: threads
   }
   output {
@@ -110,26 +112,27 @@ task FastqtoUnmappedBam {
   String flowcellName
   String libraryName
   String sequencingCenter
-  String modules
+  String GATKDocker
 }
   command {
     set -eo pipefail
 
     gatk --java-options "-Dsamjdk.compression_level=5 -Xms4g" \
     FastqToSam \
-      -FASTQ=~{sep=" " R1fastq} \
-      -FASTQ2=~{sep=" " R2fastq} \
-      -OUTPUT=~{base_file_name}.unmapped.bam \
-      -READ_GROUP_NAME=~{sampleName}_~{flowcellName} \
-      -SAMPLE_NAME=~{sampleName} \
-      -LIBRARY_NAME=~{libraryName} \
-      -PLATFORM=illumina \
-      -SEQUENCING_CENTER=~{sequencingCenter}
+      --FASTQ ~{sep=" " R1fastq} \
+      --FASTQ2 ~{sep=" " R2fastq} \
+      --OUTPUT ~{base_file_name}.unmapped.bam \
+      --READ_GROUP_NAME ~{sampleName}_~{flowcellName} \
+      --SAMPLE_NAME ~{sampleName} \
+      --LIBRARY_NAME ~{libraryName} \
+      --PLATFORM illumina \
+      --SEQUENCING_CENTER ~{sequencingCenter} \
+      --VERBOSITY WARNING
   }
   runtime {
     cpu: 4
     memory: "8G"
-    modules: modules
+    docker: GATKDocker
   }
   output {
     File unmappedbam = "~{base_file_name}.unmapped.bam"
@@ -141,20 +144,20 @@ task ValidateCram {
   input {
   File unmappedCram
   String base_file_name
-  String modules
+  String GATKDocker
 }
   command {
     set -eo pipefail
     gatk --java-options "-Dsamjdk.compression_level=5 -Xms2g" \
       ValidateSamFile \
-        --INPUT=~{unmappedCram} \
-        --MODE=SUMMARY \
-        --IGNORE_WARNINGS=false > ~{base_file_name}.validation.txt
+        --INPUT ~{unmappedCram} \
+        --MODE SUMMARY \
+        --IGNORE_WARNINGS false > ~{base_file_name}.validation.txt
   }
   runtime {
     cpu: 2
     memory: "4 GB"
-    modules: modules
+    docker: GATKDocker
   }
   output {
     File validation = "~{base_file_name}.validation.txt"
@@ -165,7 +168,7 @@ task mergeBamstoCram {
   input {
   Array[File] bamsToMerge
   String base_file_name
-  String modules
+  String samtoolsDocker
   Int threads
   }
 
@@ -178,7 +181,7 @@ task mergeBamstoCram {
 
     }
   runtime {
-    modules: modules
+    docker: samtoolsDocker
     cpu: threads
   }
   output {

@@ -6,7 +6,7 @@
     "default_runtime_attributes": {
         "maxRetries": 1
     },
-    "final_workflow_outputs_dir": "/fh/scratch/delete90/paguirigan_a/WGS/JR-WGS-unmapped/",
+    "final_workflow_outputs_dir": "/fh/scratch/delete90/paguirigan_a/WGS/JR-WGS-rg-unmapped",
     "use_relative_output_paths": true
 
 }
